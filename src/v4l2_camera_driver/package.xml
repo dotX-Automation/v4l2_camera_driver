@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>usb_camera_driver</name>
+  <name>v4l2_camera_driver</name>
   <version>1.0.0</version>
-  <description>ROS 2 driver node for monocular USB cameras.</description>
-  <maintainer email="isl.torvergata@gmail.com">Intelligent Systems Lab</maintainer>
-  <license>GPL-3.0-only</license>
+  <description>ROS 2 driver node for V4L2 cameras.</description>
+  <maintainer email="info@dotxautomation.com">dotX Automation s.r.l.</maintainer>
+  <license>Apache-2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 
@@ -13,7 +13,7 @@
   <depend>camera_info_manager</depend>
   <depend>dua_app_management</depend>
   <depend>dua_node</depend>
-  <depend>dua_qos</depend>
+  <depend>dua_qos_cpp</depend>
   <depend>image_transport</depend>
   <depend>params_manager</depend>
   <depend>rclcpp</depend>

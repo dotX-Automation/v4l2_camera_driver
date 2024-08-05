@@ -1,21 +1,21 @@
-/usb_camera/usb_camera_driver:
+/v4l2_camera/v4l2_camera_driver:
   ros__parameters:
     autostart: true
-    base_topic_name: camera
-    best_effort_qos: true
-    brightness: 0.0
-    camera_calibration_file: file:///home/neo/workspace/src/v4l2_usb_camera/config/camera.yaml
-    camera_id: 0
+    camera_brightness: 0.0
+    camera_calibration_file: file:///home/neo/workspace/src/v4l2_camera_driver/config/camera.yaml
     camera_device_file: /dev/video0
+    camera_exposure: 0.0
+    camera_fps: 20
+    camera_frame_id: camera_link
+    camera_id: 0
     camera_name: camera
-    exposure: 0.0
-    fps: 20
-    frame_id: map
+    camera_wb_temperature: 0.0
     image_height: 480
+    image_rotation: 0
     image_width: 640
+    publisher_base_topic_name: camera
+    publisher_best_effort_qos: true
     publisher_depth: 5
-    rotation: 0
-    wb_temperature: 0.0
     # image_transport parameters
     usb_camera_driver:
       camera:

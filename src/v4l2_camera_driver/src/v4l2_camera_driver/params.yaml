@@ -1,6 +1,6 @@
-header_include_path: usb_camera_driver/usb_camera_driver.hpp
-namespace: USBCameraDriver
-node_class_name: CameraDriverNode
+header_include_path: v4l2_camera_driver/v4l2_camera_driver.hpp
+namespace: v4l2_camera_driver
+node_class_name: V4L2CameraDriver
 
 params:
   autostart:
@@ -10,21 +10,7 @@ params:
     constraints: ""
     read_only: true
 
-  base_topic_name:
-    type: string
-    default_value: camera
-    description: "Base topic name for the camera node."
-    constraints: "Must be a valid ROS topic name."
-    read_only: true
-
-  best_effort_qos:
-    type: bool
-    default_value: false
-    description: "Use best effort QoS for image topics."
-    constraints: ""
-    read_only: true
-
-  brightness:
+  camera_brightness:
     type: double
     default_value: 0.0
     min_value: -1000.0
@@ -33,7 +19,7 @@ params:
     description: "Brightness setting for the camera."
     constraints: "Camera-dependent, 0.0 means 'auto'."
     read_only: false
-    validator: validate_brightness
+    validator: validate_camera_brightness
 
   camera_calibration_file:
     type: string
@@ -48,6 +34,36 @@ params:
     description: "Camera device file name."
     constraints: "Must be a valid device file full path, overrides camera_id if specified."
     read_only: true
+
+  camera_exposure:
+    type: double
+    default_value: 0.0
+    min_value: -1000.0
+    max_value: 1000.0
+    step: 0.0
+    description: "Exposure setting for the camera."
+    constraints: "Camera-dependent, 0.0 means 'auto'."
+    read_only: false
+    validator: validate_camera_exposure
+
+  camera_fps:
+    type: integer
+    default_value: 20
+    min_value: 1
+    max_value: 9223372036854775807
+    step: 1
+    description: "Camera frame rate."
+    constraints: "Changes require camera restart, camera-dependent, so even if the hardware doesn't support the requested frame rate, the driver will observe it with timed sampling."
+    read_only: false
+    var_name: camera_fps_
+
+  camera_frame_id:
+    type: string
+    default_value: "camera_link"
+    description: "Camera frame ID."
+    constraints: "Make sure that a TF frame with this name exists."
+    read_only: false
+    var_name: camera_frame_id_
 
   camera_id:
     type: integer
@@ -66,35 +82,16 @@ params:
     constraints: ""
     read_only: true
 
-  exposure:
+  camera_wb_temperature:
     type: double
     default_value: 0.0
     min_value: -1000.0
     max_value: 1000.0
     step: 0.0
-    description: "Exposure setting for the camera."
+    description: "White balance color temperature setting for the camera."
     constraints: "Camera-dependent, 0.0 means 'auto'."
     read_only: false
-    validator: validate_exposure
-
-  fps:
-    type: integer
-    default_value: 20
-    min_value: 1
-    max_value: 9223372036854775807
-    step: 1
-    description: "Camera frame rate."
-    constraints: "Changes require camera restart, camera-dependent, so even if the hardware doesn't support the requested frame rate, the driver will observe it with timed sampling."
-    read_only: false
-    var_name: fps_
-
-  frame_id:
-    type: string
-    default_value: "map"
-    description: "Camera frame ID."
-    constraints: "Make sure that a TF frame with this name exists."
-    read_only: false
-    var_name: frame_id_
+    validator: validate_camera_wb_temperature
 
   image_height:
     type: integer
@@ -107,6 +104,17 @@ params:
     read_only: false
     var_name: image_height_
 
+  image_rotation:
+    type: integer
+    default_value: 0
+    min_value: -180
+    max_value: 180
+    step: 90
+    description: "Image rotation angle [deg]."
+    constraints: "Intended as last image processing step, must be a multiple of 90°."
+    read_only: true
+    var_name: image_rotation_
+
   image_width:
     type: integer
     default_value: 640
@@ -118,6 +126,20 @@ params:
     read_only: false
     var_name: image_width_
 
+  publisher_base_topic_name:
+    type: string
+    default_value: camera
+    description: "Base topic name for the camera node."
+    constraints: "Must be a valid ROS topic name."
+    read_only: true
+
+  publisher_best_effort_qos:
+    type: bool
+    default_value: false
+    description: "Use best effort QoS for image topics."
+    constraints: ""
+    read_only: true
+
   publisher_depth:
     type: integer
     default_value: 5
@@ -127,25 +149,3 @@ params:
     description: "Depth of the image publisher queue."
     constraints: ""
     read_only: true
-
-  rotation:
-    type: integer
-    default_value: 0
-    min_value: -180
-    max_value: 180
-    step: 90
-    description: "Image rotation angle [deg]."
-    constraints: "Intended as last image processing step, must be a multiple of 90°."
-    read_only: true
-    var_name: rotation_
-
-  wb_temperature:
-    type: double
-    default_value: 0.0
-    min_value: -1000.0
-    max_value: 1000.0
-    step: 0.0
-    description: "White balance color temperature setting for the camera."
-    constraints: "Camera-dependent, 0.0 means 'auto'."
-    read_only: false
-    validator: validate_wb_temperature

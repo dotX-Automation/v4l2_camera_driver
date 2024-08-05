@@ -1,31 +1,23 @@
 /**
- * ROS 2 USB Camera Driver node auxiliary routines.
- *
- * Roberto Masocco <robmasocco@gmail.com>
- * Lorenzo Bianchi <lnz.bnc@gmail.com>
- * Intelligent Systems Lab <isl.torvergata@gmail.com>
+ * ROS 2 V4L2 Camera Driver node auxiliary routines.
  *
  * August 7, 2023
  */
 
 /**
- * Copyright © 2023 Intelligent Systems Lab
- */
-
-/**
- * This is free software.
- * You can redistribute it and/or modify this file under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
+ * Copyright 2024 dotX Automation s.r.l.
  *
- * This file is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * You should have received a copy of the GNU General Public License along with
- * this file; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <cfloat>
@@ -33,9 +25,9 @@
 #include <cstring>
 #include <stdexcept>
 
-#include <usb_camera_driver/usb_camera_driver.hpp>
+#include <v4l2_camera_driver/v4l2_camera_driver.hpp>
 
-namespace USBCameraDriver
+namespace v4l2_camera_driver
 {
 
 /**
@@ -43,7 +35,7 @@ namespace USBCameraDriver
  *
  * @return True if the camera was opened successfully, false otherwise.
  */
-bool CameraDriverNode::open_camera()
+bool V4L2CameraDriver::open_camera()
 {
   // Open capture device
   bool opened = false;
@@ -65,32 +57,32 @@ bool CameraDriverNode::open_camera()
   if (!opened ||
     !video_cap_.set(cv::CAP_PROP_FRAME_WIDTH, image_width_) ||
     !video_cap_.set(cv::CAP_PROP_FRAME_HEIGHT, image_height_) ||
-    !video_cap_.set(cv::CAP_PROP_FPS, fps_))
+    !video_cap_.set(cv::CAP_PROP_FPS, camera_fps_))
   {
     RCLCPP_ERROR(
       this->get_logger(),
-      "CameraDriverNode::open_camera: Failed to open capture device");
+      "V4L2CameraDriver::open_camera: Failed to open capture device");
     return false;
   }
 
   // Set camera parameters
-  double exposure = this->get_parameter("exposure").as_double();
-  double brightness = this->get_parameter("brightness").as_double();
-  double wb_temperature = this->get_parameter("wb_temperature").as_double();
+  double exposure = this->get_parameter("camera_exposure").as_double();
+  double brightness = this->get_parameter("camera_brightness").as_double();
+  double wb_temperature = this->get_parameter("camera_wb_temperature").as_double();
   bool success;
   if (exposure != 0.0) {
     success = video_cap_.set(cv::CAP_PROP_AUTO_EXPOSURE, 0.75);
     if (!success) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::open_camera: cv::VideoCapture::set(CAP_PROP_AUTO_EXPOSURE, 0.75) failed");
+        "V4L2CameraDriver::open_camera: cv::VideoCapture::set(CAP_PROP_AUTO_EXPOSURE, 0.75) failed");
       return false;
     }
     success = video_cap_.set(cv::CAP_PROP_EXPOSURE, exposure);
     if (!success) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::open_camera: cv::VideoCapture::set(CAP_PROP_EXPOSURE) failed");
+        "V4L2CameraDriver::open_camera: cv::VideoCapture::set(CAP_PROP_EXPOSURE) failed");
       return false;
     }
   }
@@ -99,7 +91,7 @@ bool CameraDriverNode::open_camera()
     if (!success) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::open_camera: cv::VideoCapture::set(CAP_PROP_BRIGHTNESS) failed");
+        "V4L2CameraDriver::open_camera: cv::VideoCapture::set(CAP_PROP_BRIGHTNESS) failed");
       return false;
     }
   }
@@ -108,7 +100,7 @@ bool CameraDriverNode::open_camera()
     if (!success) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::open_camera: cv::VideoCapture::set(CAP_PROP_AUTO_WB, 1.0) failed");
+        "V4L2CameraDriver::open_camera: cv::VideoCapture::set(CAP_PROP_AUTO_WB, 1.0) failed");
       return false;
     }
   } else {
@@ -116,14 +108,14 @@ bool CameraDriverNode::open_camera()
     if (!success) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::open_camera: cv::VideoCapture::set(CAP_PROP_AUTO_WB, 0.0) failed");
+        "V4L2CameraDriver::open_camera: cv::VideoCapture::set(CAP_PROP_AUTO_WB, 0.0) failed");
       return false;
     }
     success = video_cap_.set(cv::CAP_PROP_WB_TEMPERATURE, wb_temperature);
     if (!success) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::open_camera: cv::VideoCapture::set(CAP_PROP_WB_TEMPERATURE) failed");
+        "V4L2CameraDriver::open_camera: cv::VideoCapture::set(CAP_PROP_WB_TEMPERATURE) failed");
       return false;
     }
   }
@@ -134,7 +126,7 @@ bool CameraDriverNode::open_camera()
 /**
  * @brief Closes the camera.
  */
-void CameraDriverNode::close_camera()
+void V4L2CameraDriver::close_camera()
 {
   if (video_cap_.isOpened()) {
     video_cap_.release();
@@ -145,7 +137,7 @@ void CameraDriverNode::close_camera()
 /**
  * @brief Initializes the VPI context and data.
  */
-void CameraDriverNode::init_vpi()
+void V4L2CameraDriver::init_vpi()
 {
   VPIStatus err;
 
@@ -154,8 +146,8 @@ void CameraDriverNode::init_vpi()
     vpi_backend_ | VPIBackend::VPI_BACKEND_CUDA,
     &vpi_stream_);
   if (err != VPIStatus::VPI_SUCCESS) {
-    RCLCPP_FATAL(this->get_logger(), "CameraDriverNode::init_vpi: Failed to create VPI stream");
-    throw std::runtime_error("CameraDriverNode::init_vpi: Failed to create VPI stream");
+    RCLCPP_FATAL(this->get_logger(), "V4L2CameraDriver::init_vpi: Failed to create VPI stream");
+    throw std::runtime_error("V4L2CameraDriver::init_vpi: Failed to create VPI stream");
   }
 
   if (cinfo_manager_->isCalibrated()) {
@@ -171,9 +163,9 @@ void CameraDriverNode::init_vpi()
     if (err != VPI_SUCCESS) {
       RCLCPP_FATAL(
         this->get_logger(),
-        "CameraDriverNode::init_vpi: Failed to allocate rectification warp map");
+        "V4L2CameraDriver::init_vpi: Failed to allocate rectification warp map");
       throw std::runtime_error(
-              "CameraDriverNode::init_vpi: Failed to allocate rectification warp map");
+              "V4L2CameraDriver::init_vpi: Failed to allocate rectification warp map");
     }
 
     // Get intrinsic camera parameters
@@ -203,9 +195,9 @@ void CameraDriverNode::init_vpi()
     if (err != VPIStatus::VPI_SUCCESS) {
       RCLCPP_FATAL(
         this->get_logger(),
-        "CameraDriverNode::init_vpi: Failed to generate VPI rectification map");
+        "V4L2CameraDriver::init_vpi: Failed to generate VPI rectification map");
       throw std::runtime_error(
-              "CameraDriverNode::init_vpi: Failed to generate VPI rectification map");
+              "V4L2CameraDriver::init_vpi: Failed to generate VPI rectification map");
     }
 
     // Create VPI remap payload
@@ -215,15 +207,15 @@ void CameraDriverNode::init_vpi()
       &vpi_remap_payload_);
     if (err != VPIStatus::VPI_SUCCESS) {
       RCLCPP_FATAL(
-        this->get_logger(), "CameraDriverNode::init_vpi: Failed to create VPI remap payload");
-      throw std::runtime_error("CameraDriverNode::init_vpi: Failed to create VPI remap payload");
+        this->get_logger(), "V4L2CameraDriver::init_vpi: Failed to create VPI remap payload");
+      throw std::runtime_error("V4L2CameraDriver::init_vpi: Failed to create VPI remap payload");
     }
   }
 
   // Initialize rotation data and warp map
   int32_t rot_width = 0, rot_height = 0;
-  if (rotation_ != 0) {
-    if (rotation_ == 90 || rotation_ == -90) {
+  if (image_rotation_ != 0) {
+    if (image_rotation_ == 90 || image_rotation_ == -90) {
       rot_width = image_height_;
       rot_height = image_width_;
     } else {
@@ -243,26 +235,26 @@ void CameraDriverNode::init_vpi()
     if (err != VPI_SUCCESS) {
       RCLCPP_FATAL(
         this->get_logger(),
-        "CameraDriverNode::init_vpi: Failed to allocate rotation warp map");
-      throw std::runtime_error("CameraDriverNode::init_vpi: Failed to allocate rotation warp map");
+        "V4L2CameraDriver::init_vpi: Failed to allocate rotation warp map");
+      throw std::runtime_error("V4L2CameraDriver::init_vpi: Failed to allocate rotation warp map");
     }
 
     err = vpiWarpMapGenerateIdentity(&vpi_rot_map_);
     if (err != VPI_SUCCESS) {
       RCLCPP_FATAL(
         this->get_logger(),
-        "CameraDriverNode::init_vpi: Failed to generate rotation warp map");
-      throw std::runtime_error("CameraDriverNode::init_vpi: Failed to generate rotation warp map");
+        "V4L2CameraDriver::init_vpi: Failed to generate rotation warp map");
+      throw std::runtime_error("V4L2CameraDriver::init_vpi: Failed to generate rotation warp map");
     }
 
     for (int i = 0; i < vpi_rot_map_.numVertPoints; ++i) {
       VPIKeypointF32 * row =
         (VPIKeypointF32 *)((uint8_t *)vpi_rot_map_.keypoints + vpi_rot_map_.pitchBytes * i);
       for (int j = 0; j < vpi_rot_map_.numHorizPoints; ++j) {
-        if (rotation_ == 90) {
+        if (image_rotation_ == 90) {
           row[j].x = float(image_width_ - i - 1);
           row[j].y = float(j);
-        } else if (rotation_ == -90) {
+        } else if (image_rotation_ == -90) {
           row[j].x = float(i);
           row[j].y = float(image_height_ - j - 1);
         } else {
@@ -280,9 +272,9 @@ void CameraDriverNode::init_vpi()
     if (err != VPI_SUCCESS) {
       RCLCPP_FATAL(
         this->get_logger(),
-        "CameraDriverNode::init_vpi: Failed to create rotation remap payload");
+        "V4L2CameraDriver::init_vpi: Failed to create rotation remap payload");
       throw std::runtime_error(
-              "CameraDriverNode::init_vpi: Failed to create rotation remap payload");
+              "V4L2CameraDriver::init_vpi: Failed to create rotation remap payload");
     }
   }
 
@@ -309,7 +301,7 @@ void CameraDriverNode::init_vpi()
       vpi_backend_ | VPIBackend::VPI_BACKEND_CUDA | VPI_EXCLUSIVE_STREAM_ACCESS,
       &vpi_frame_rect_);
   }
-  if (rotation_ != 0) {
+  if (image_rotation_ != 0) {
     err_img4 = vpiImageCreate(
       rot_width,
       rot_height,
@@ -331,8 +323,8 @@ void CameraDriverNode::init_vpi()
     err_img4 != VPIStatus::VPI_SUCCESS ||
     err_img5 != VPIStatus::VPI_SUCCESS)
   {
-    RCLCPP_FATAL(this->get_logger(), "CameraDriverNode::init_vpi: Failed to create VPI images");
-    throw std::runtime_error("CameraDriverNode::init_vpi: Failed to create VPI images");
+    RCLCPP_FATAL(this->get_logger(), "V4L2CameraDriver::init_vpi: Failed to create VPI images");
+    throw std::runtime_error("V4L2CameraDriver::init_vpi: Failed to create VPI images");
   }
 }
 #endif
@@ -342,7 +334,7 @@ void CameraDriverNode::init_vpi()
  *
  * @return True if the frame was processed successfully, false otherwise.
  */
-bool CameraDriverNode::process_frame()
+bool V4L2CameraDriver::process_frame()
 {
   /**
    * The following code supports the following APIs, and self-compiles according to the
@@ -353,7 +345,7 @@ bool CameraDriverNode::process_frame()
    *
    * Independently of the APIs being used, the code is structured in the following way:
    * - Get the frame to process.
-   * - Resize it to the desired format (usually not done by the USB camera, but we try to request it).
+   * - Resize it to the desired format (usually not done by the camera, but we try to request it).
    * - If the camera has been calibrated, rectify the frame.
    * - If a rotation has been requested, rotate the frame and the rectified frame.
    * - Write final frames.
@@ -376,7 +368,7 @@ bool CameraDriverNode::process_frame()
   if (err != VPIStatus::VPI_SUCCESS) {
     RCLCPP_ERROR(
       this->get_logger(),
-      "CameraDriverNode::process_frame: Failed to wrap cv::Mat to VPIImage");
+      "V4L2CameraDriver::process_frame: Failed to wrap cv::Mat to VPIImage");
     return false;
   }
 
@@ -396,13 +388,13 @@ bool CameraDriverNode::process_frame()
     if (err != VPIStatus::VPI_SUCCESS) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::process_frame: Failed to wrap rectified cv::Mat to VPIImage");
+        "V4L2CameraDriver::process_frame: Failed to wrap rectified cv::Mat to VPIImage");
       return false;
     }
   }
 
   // Wrap the rotated cv::Mat to a VPIImage (output)
-  if (rotation_ != 0) {
+  if (image_rotation_ != 0) {
     if (vpi_frame_rot_wrap_ == nullptr) {
       int32_t rot_width = 0, rot_height = 0;
       vpiImageGetSize(vpi_frame_rot_, &rot_width, &rot_height);
@@ -414,7 +406,7 @@ bool CameraDriverNode::process_frame()
       if (err != VPIStatus::VPI_SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::process_frame: Failed to wrap rotated cv::Mat to VPIImage");
+          "V4L2CameraDriver::process_frame: Failed to wrap rotated cv::Mat to VPIImage");
         return false;
       }
     }
@@ -429,7 +421,7 @@ bool CameraDriverNode::process_frame()
       if (err != VPIStatus::VPI_SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::process_frame: Failed to wrap rotated rectified cv::Mat to VPIImage");
+          "V4L2CameraDriver::process_frame: Failed to wrap rotated rectified cv::Mat to VPIImage");
         return false;
       }
     }
@@ -445,7 +437,7 @@ bool CameraDriverNode::process_frame()
   if (err != VPIStatus::VPI_SUCCESS) {
     RCLCPP_ERROR(
       this->get_logger(),
-      "CameraDriverNode::process_frame: Failed to convert image BGR->NV12");
+      "V4L2CameraDriver::process_frame: Failed to convert image BGR->NV12");
     return false;
   }
 
@@ -461,7 +453,7 @@ bool CameraDriverNode::process_frame()
   if (err != VPIStatus::VPI_SUCCESS) {
     RCLCPP_ERROR(
       this->get_logger(),
-      "CameraDriverNode::process_frame: Failed to rescale image");
+      "V4L2CameraDriver::process_frame: Failed to rescale image");
     return false;
   }
 
@@ -479,13 +471,13 @@ bool CameraDriverNode::process_frame()
     if (err != VPIStatus::VPI_SUCCESS) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::process_frame: Failed to rectify image");
+        "V4L2CameraDriver::process_frame: Failed to rectify image");
       return false;
     }
   }
 
   // Rotate frames
-  if (rotation_ != 0) {
+  if (image_rotation_ != 0) {
     err = vpiSubmitRemap(
       vpi_stream_,
       vpi_backend_,
@@ -498,7 +490,7 @@ bool CameraDriverNode::process_frame()
     if (err != VPIStatus::VPI_SUCCESS) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::process_frame: Failed to rotate image");
+        "V4L2CameraDriver::process_frame: Failed to rotate image");
       return false;
     }
 
@@ -515,14 +507,14 @@ bool CameraDriverNode::process_frame()
       if (err != VPIStatus::VPI_SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::process_frame: Failed to rotate rectified image");
+          "V4L2CameraDriver::process_frame: Failed to rotate rectified image");
         return false;
       }
     }
   }
 
   // Convert frames back to BGR
-  if (rotation_ != 0) {
+  if (image_rotation_ != 0) {
     err = vpiSubmitConvertImageFormat(
       vpi_stream_,
       VPIBackend::VPI_BACKEND_CUDA,
@@ -532,7 +524,7 @@ bool CameraDriverNode::process_frame()
     if (err != VPIStatus::VPI_SUCCESS) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::process_frame: Failed to convert rotated image NV12->BGR");
+        "V4L2CameraDriver::process_frame: Failed to convert rotated image NV12->BGR");
       return false;
     }
 
@@ -546,7 +538,7 @@ bool CameraDriverNode::process_frame()
       if (err != VPIStatus::VPI_SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::process_frame: Failed to convert rectified rotated image NV12->BGR");
+          "V4L2CameraDriver::process_frame: Failed to convert rectified rotated image NV12->BGR");
         return false;
       }
     }
@@ -560,7 +552,7 @@ bool CameraDriverNode::process_frame()
     if (err != VPIStatus::VPI_SUCCESS) {
       RCLCPP_ERROR(
         this->get_logger(),
-        "CameraDriverNode::process_frame: Failed to convert image NV12->BGR");
+        "V4L2CameraDriver::process_frame: Failed to convert image NV12->BGR");
       return false;
     }
 
@@ -574,7 +566,7 @@ bool CameraDriverNode::process_frame()
       if (err != VPIStatus::VPI_SUCCESS) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::process_frame: Failed to convert rectified image NV12->BGR");
+          "V4L2CameraDriver::process_frame: Failed to convert rectified image NV12->BGR");
         return false;
       }
     }
@@ -585,7 +577,7 @@ bool CameraDriverNode::process_frame()
   if (err != VPIStatus::VPI_SUCCESS) {
     RCLCPP_ERROR(
       this->get_logger(),
-      "CameraDriverNode::process_frame: VPIStream processing failed");
+      "V4L2CameraDriver::process_frame: VPIStream processing failed");
     return false;
   }
 
@@ -605,7 +597,7 @@ bool CameraDriverNode::process_frame()
       cv::BorderTypes::BORDER_CONSTANT);
   }
 
-  if (rotation_ == 90) {
+  if (image_rotation_ == 90) {
     cv::cuda::rotate(
       gpu_frame_,
       gpu_frame_rot_,
@@ -624,7 +616,7 @@ bool CameraDriverNode::process_frame()
         image_width_ - 1,
         cv::InterpolationFlags::INTER_LINEAR);
     }
-  } else if (rotation_ == -90) {
+  } else if (image_rotation_ == -90) {
     cv::cuda::rotate(
       gpu_frame_,
       gpu_frame_rot_,
@@ -643,7 +635,7 @@ bool CameraDriverNode::process_frame()
         0.0,
         cv::InterpolationFlags::INTER_LINEAR);
     }
-  } else if (rotation_ == 180 || rotation_ == -180) {
+  } else if (image_rotation_ == 180 || image_rotation_ == -180) {
     cv::cuda::rotate(
       gpu_frame_,
       gpu_frame_rot_,
@@ -664,7 +656,7 @@ bool CameraDriverNode::process_frame()
     }
   }
 
-  if (rotation_ != 0) {
+  if (image_rotation_ != 0) {
     gpu_frame_rot_.download(frame_rot_);
     if (cinfo_manager_->isCalibrated()) {
       gpu_rectified_frame_rot_.download(frame_rect_rot_);
@@ -690,17 +682,17 @@ bool CameraDriverNode::process_frame()
       cv::BorderTypes::BORDER_CONSTANT);
   }
 
-  if (rotation_ == 90) {
+  if (image_rotation_ == 90) {
     cv::rotate(frame_, frame_rot_, cv::ROTATE_90_COUNTERCLOCKWISE);
     if (cinfo_manager_->isCalibrated()) {
       cv::rotate(rectified_frame_, frame_rect_rot_, cv::ROTATE_90_COUNTERCLOCKWISE);
     }
-  } else if (rotation_ == -90) {
+  } else if (image_rotation_ == -90) {
     cv::rotate(frame_, frame_rot_, cv::ROTATE_90_CLOCKWISE);
     if (cinfo_manager_->isCalibrated()) {
       cv::rotate(rectified_frame_, frame_rect_rot_, cv::ROTATE_90_CLOCKWISE);
     }
-  } else if (rotation_ == 180 || rotation_ == -180) {
+  } else if (image_rotation_ == 180 || image_rotation_ == -180) {
     cv::rotate(frame_, frame_rot_, cv::ROTATE_180);
     if (cinfo_manager_->isCalibrated()) {
       cv::rotate(rectified_frame_, frame_rect_rot_, cv::ROTATE_180);
@@ -717,7 +709,7 @@ bool CameraDriverNode::process_frame()
  * @param frame cv::Mat storing the frame.
  * @return Shared pointer to a new Image message.
  */
-Image::SharedPtr CameraDriverNode::frame_to_msg(cv::Mat & frame)
+Image::SharedPtr V4L2CameraDriver::frame_to_msg(cv::Mat & frame)
 {
   // Allocate new image message
   auto ros_image = std::make_shared<Image>();
@@ -738,17 +730,17 @@ Image::SharedPtr CameraDriverNode::frame_to_msg(cv::Mat & frame)
 }
 
 /**
- * @brief Validates the brightness parameter.
+ * @brief Validates the camera_brightness parameter.
  *
  * @param p Parameter to validate.
  * @return True if the parameter is valid, false otherwise.
  */
-bool CameraDriverNode::validate_brightness(const rclcpp::Parameter & p)
+bool V4L2CameraDriver::validate_camera_brightness(const rclcpp::Parameter & p)
 {
   if (video_cap_.isOpened() && !video_cap_.set(cv::CAP_PROP_BRIGHTNESS, p.as_double())) {
     RCLCPP_ERROR(
       this->get_logger(),
-      "CameraDriverNode::validate_brightness: Failed to set camera brightness to: %.4f",
+      "V4L2CameraDriver::validate_camera_brightness: Failed to set camera brightness to: %.4f",
       p.as_double());
     return false;
   }
@@ -756,12 +748,12 @@ bool CameraDriverNode::validate_brightness(const rclcpp::Parameter & p)
 }
 
 /**
- * @brief Validates the exposure parameter.
+ * @brief Validates the camera_exposure parameter.
  *
  * @param p Parameter to validate.
  * @return True if the parameter is valid, false otherwise.
  */
-bool CameraDriverNode::validate_exposure(const rclcpp::Parameter & p)
+bool V4L2CameraDriver::validate_camera_exposure(const rclcpp::Parameter & p)
 {
   if (video_cap_.isOpened()) {
     bool success;
@@ -770,7 +762,7 @@ bool CameraDriverNode::validate_exposure(const rclcpp::Parameter & p)
       if (!success) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::validate_exposure: cv::VideoCapture::set(CAP_PROP_AUTO_EXPOSURE, 3.0) failed");
+          "V4L2CameraDriver::validate_camera_exposure: cv::VideoCapture::set(CAP_PROP_AUTO_EXPOSURE, 3.0) failed");
         return false;
       }
     } else {
@@ -778,14 +770,14 @@ bool CameraDriverNode::validate_exposure(const rclcpp::Parameter & p)
       if (!success) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::validate_exposure: cv::VideoCapture::set(CAP_PROP_AUTO_EXPOSURE, 0.75) failed");
+          "V4L2CameraDriver::validate_camera_exposure: cv::VideoCapture::set(CAP_PROP_AUTO_EXPOSURE, 0.75) failed");
         return false;
       }
       success = video_cap_.set(cv::CAP_PROP_EXPOSURE, p.as_double());
       if (!success) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::validate_exposure: cv::VideoCapture::set(CAP_PROP_EXPOSURE) failed");
+          "V4L2CameraDriver::validate_camera_exposure: cv::VideoCapture::set(CAP_PROP_EXPOSURE) failed");
         return false;
       }
     }
@@ -794,12 +786,12 @@ bool CameraDriverNode::validate_exposure(const rclcpp::Parameter & p)
 }
 
 /**
- * @brief Validates the WB temperature parameter.
+ * @brief Validates the camera_wb_temperature parameter.
  *
  * @param p Parameter to validate.
  * @return True if the parameter is valid, false otherwise.
  */
-bool CameraDriverNode::validate_wb_temperature(const rclcpp::Parameter & p)
+bool V4L2CameraDriver::validate_camera_wb_temperature(const rclcpp::Parameter & p)
 {
   if (video_cap_.isOpened()) {
     bool success;
@@ -808,7 +800,7 @@ bool CameraDriverNode::validate_wb_temperature(const rclcpp::Parameter & p)
       if (!success) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::validate_wb_temperature: cv::VideoCapture::set(CAP_PROP_AUTO_WB, 1.0) failed");
+          "V4L2CameraDriver::validate_camera_wb_temperature: cv::VideoCapture::set(CAP_PROP_AUTO_WB, 1.0) failed");
         return false;
       }
     } else {
@@ -816,14 +808,14 @@ bool CameraDriverNode::validate_wb_temperature(const rclcpp::Parameter & p)
       if (!success) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::validate_wb_temperature: cv::VideoCapture::set(CAP_PROP_AUTO_WB, 0.0) failed");
+          "V4L2CameraDriver::validate_camera_wb_temperature: cv::VideoCapture::set(CAP_PROP_AUTO_WB, 0.0) failed");
         return false;
       }
       success = video_cap_.set(cv::CAP_PROP_WB_TEMPERATURE, p.as_double());
       if (!success) {
         RCLCPP_ERROR(
           this->get_logger(),
-          "CameraDriverNode::validate_wb_temperature: cv::VideoCapture::set(CAP_PROP_WB_TEMPERATURE) failed");
+          "V4L2CameraDriver::validate_camera_wb_temperature: cv::VideoCapture::set(CAP_PROP_WB_TEMPERATURE) failed");
         return false;
       }
     }
@@ -831,4 +823,4 @@ bool CameraDriverNode::validate_wb_temperature(const rclcpp::Parameter & p)
   return true;
 }
 
-} // namespace USBCameraDriver
+} // namespace v4l2_camera_driver

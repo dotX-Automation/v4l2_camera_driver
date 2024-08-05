@@ -1,12 +1,13 @@
 # v4l2_camera_driver
 
-Simple ROS 2 driver node for USB monocular cameras compatible with the `Video4Linux` APIs. Based on `image_transport`, `camera_calibration` and `OpenCV`.
+Simple ROS 2 driver node for USB cameras compatible with the `Video4Linux` APIs. Based on `image_transport`, `camera_calibration` and `OpenCV`.
 
 ## Features
 
 - `CameraInfo` topic.
 - `CompressedImage` topics for both color and rectified-color images.
 - `Image` topics for both color and rectified-color images.
+- `Theora` resettable publisher based on the `TheoraWrappers` library.
 - Hardware enable service, based on `std_srvs/srv/SetBool`.
 - Supports namespace and node name remappings, in order to run different cameras with multiple instances of the node.
 - ROS 2 component compilation and installation.
@@ -48,21 +49,21 @@ The VPI pipeline goes from image acquisition to resize, rectification, rotation,
 Configuration files for node parameters can be found in `config`, with some standard default settings. They can be customized, or overridden from command line or launch files.
 
 - `autostart`: starts the camera driver on node initialization.
-- `base_topic_name`: base transmission topic name for `image_transport` publishers.
-- `best_effort_qos`: enables unreliable but faster transmissions.
-- `brightness`: camera brightness level (hardware-dependent).
+- `camera_brightness`: camera brightness level (hardware-dependent).
 - `camera_calibration_file`: camera calibration YAML file URL.
 - `camera_device_file`: camera device file name.
+- `camera_exposure`: camera exposure time (hardware-dependent).
+- `camera_fps`: camera capture rate, defaults to `20`.
+- `camera_frame_id`: id of the camera link, defaults to `camera_link`.
 - `camera_id`: ID of the video capture device to open, alternative to `camera_device_file`.
 - `camera_name`: camera name in the configuration file.
-- `exposure`: camera exposure time (hardware-dependent).
-- `fps`: camera capture rate, defaults to `20`.
-- `frame_id`: id of the camera link, defaults to `map`.
+- `camera_wb_temperature`: white balance temperature (hardware-dependent).
 - `image_height`: image height, defaults to `480`.
+- `image_rotation`: image rotation angle \[deg\], defaults to `0` and must be a multiple of `90°`.
 - `image_width`: image width, defaults to `640`.
+- `publisher_base_topic_name`: base transmission topic name for `image_transport` publishers.
+- `publisher_best_effort_qos`: enables unreliable but faster transmissions.
 - `publisher_depth`: depth of the image publisher queue.
-- `rotation`: image rotation angle \[deg\], defaults to `0` and must be a multiple of `90°`.
-- `wb_temperature`: white balance temperature (hardware-dependent).
 
 Keep in mind that:
 

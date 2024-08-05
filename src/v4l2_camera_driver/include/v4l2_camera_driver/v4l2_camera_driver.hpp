@@ -1,35 +1,27 @@
 /**
- * ROS 2 USB Camera Driver node.
- *
- * Roberto Masocco <robmasocco@gmail.com>
- * Lorenzo Bianchi <lnz.bnc@gmail.com>
- * Intelligent Systems Lab <isl.torvergata@gmail.com>
+ * ROS 2 V4L2 Camera Driver node.
  *
  * August 7, 2023
  */
 
 /**
- * Copyright © 2023 Intelligent Systems Lab
+ * Copyright 2024 dotX Automation s.r.l.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
-/**
- * This is free software.
- * You can redistribute it and/or modify this file under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
- *
- * This file is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License along with
- * this file; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
- */
-
-#ifndef ROS2_USB_CAMERA_USB_CAMERA_DRIVER_HPP
-#define ROS2_USB_CAMERA_USB_CAMERA_DRIVER_HPP
+#ifndef V4L2_CAMERA_DRIVER__V4L2_CAMERA_DRIVER_HPP
+#define V4L2_CAMERA_DRIVER__V4L2_CAMERA_DRIVER_HPP
 
 #include <atomic>
 #include <chrono>
@@ -62,7 +54,7 @@
 #include <rclcpp/rclcpp.hpp>
 
 #include <dua_node/dua_node.hpp>
-#include <dua_qos/dua_qos.hpp>
+#include <dua_qos_cpp/dua_qos.hpp>
 
 #include <sensor_msgs/msg/camera_info.hpp>
 #include <sensor_msgs/msg/image.hpp>
@@ -79,17 +71,17 @@
 using namespace sensor_msgs::msg;
 using namespace std_srvs::srv;
 
-namespace USBCameraDriver
+namespace v4l2_camera_driver
 {
 
 /**
- * Drives USB, V4L-compatible cameras with OpenCV.
+ * Drives V4L2-compatible cameras with OpenCV.
  */
-class CameraDriverNode : public DUANode::NodeBase
+class V4L2CameraDriver : public dua_node::NodeBase
 {
 public:
-  explicit CameraDriverNode(const rclcpp::NodeOptions & opts = rclcpp::NodeOptions());
-  virtual ~CameraDriverNode();
+  explicit V4L2CameraDriver(const rclcpp::NodeOptions & opts = rclcpp::NodeOptions());
+  virtual ~V4L2CameraDriver();
 
 private:
   /* Node initialization routines. */
@@ -130,16 +122,16 @@ private:
 #endif
 
   /* Node parameters. */
-  std::string frame_id_;
-  int64_t fps_ = 0;
+  int64_t camera_fps_ = 0;
+  std::string camera_frame_id_;
   int64_t image_height_ = 0;
+  int64_t image_rotation_ = 0;
   int64_t image_width_ = 0;
-  int64_t rotation_ = 0;
 
   /* Node parameters validation routines. */
-  bool validate_brightness(const rclcpp::Parameter & p);
-  bool validate_exposure(const rclcpp::Parameter & p);
-  bool validate_wb_temperature(const rclcpp::Parameter & p);
+  bool validate_camera_brightness(const rclcpp::Parameter & p);
+  bool validate_camera_exposure(const rclcpp::Parameter & p);
+  bool validate_camera_wb_temperature(const rclcpp::Parameter & p);
 
   /* Service servers. */
   rclcpp::Service<SetBool>::SharedPtr hw_enable_server_;
@@ -171,6 +163,6 @@ private:
   std::atomic<bool> stopped_;
 };
 
-} // namespace USBCameraDriver
+} // namespace v4l2_camera_driver
 
-#endif // ROS2_USB_CAMERA_USB_CAMERA_DRIVER_HPP
+#endif // V4L2_CAMERA_DRIVER__V4L2_CAMERA_DRIVER_HPP

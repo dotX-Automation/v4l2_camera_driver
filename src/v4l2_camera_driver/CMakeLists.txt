@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.8)
-project(usb_camera_driver)
+project(v4l2_camera_driver)
 
 set(CMAKE_BUILD_TYPE "RelWithDebInfo")
 
@@ -45,7 +45,7 @@ if(NOT NO_CUDA)
 endif()
 find_package(dua_app_management REQUIRED)
 find_package(dua_node REQUIRED)
-find_package(dua_qos REQUIRED)
+find_package(dua_qos_cpp REQUIRED)
 find_package(image_transport REQUIRED)
 find_package(OpenCV 4 REQUIRED)
 find_package(params_manager REQUIRED)
@@ -62,39 +62,39 @@ endif()
 
 # Generate parameters source code
 generate_init_parameters(
-  YAML_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/usb_camera_driver/params.yaml"
+  YAML_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/v4l2_camera_driver/params.yaml"
   OUT_FILE "init_parameters.cpp")
 
-# Configure USB Camera Driver node source files
-file(GLOB USB_CAMERA_DRIVER_NODE_SRCS
+# Configure V4L2 Camera Driver node source files
+file(GLOB V4L2_CAMERA_DRIVER_NODE_SRCS
   RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}"
-  "src/usb_camera_driver/*.cpp")
-list(APPEND USB_CAMERA_DRIVER_NODE_SRCS init_parameters.cpp)
+  "src/v4l2_camera_driver/*.cpp")
+list(APPEND V4L2_CAMERA_DRIVER_NODE_SRCS init_parameters.cpp)
 
-# USB Camera Driver node
-add_library(usb_camera_driver SHARED ${USB_CAMERA_DRIVER_NODE_SRCS})
-target_compile_definitions(usb_camera_driver PRIVATE COMPOSITION_BUILDING_DLL)
+# V4L2 Camera Driver node
+add_library(v4l2_camera_driver SHARED ${V4L2_CAMERA_DRIVER_NODE_SRCS})
+target_compile_definitions(v4l2_camera_driver PRIVATE COMPOSITION_BUILDING_DLL)
 if(vpi_FOUND)
   message(STATUS "Compiling code with VPI API")
-  target_compile_definitions(usb_camera_driver PUBLIC WITH_VPI)
-  target_link_libraries(usb_camera_driver
+  target_compile_definitions(v4l2_camera_driver PUBLIC WITH_VPI)
+  target_link_libraries(v4l2_camera_driver
     vpi)
 elseif(NOT NO_CUDA AND CUDA_FOUND AND OpenCV_CUDA_VERSION)
   message(STATUS "OpenCV was built with CUDA version: ${OpenCV_CUDA_VERSION}")
   message(STATUS "Compiling code with cv::cuda API")
-  target_compile_definitions(usb_camera_driver PUBLIC WITH_CUDA)
+  target_compile_definitions(v4l2_camera_driver PUBLIC WITH_CUDA)
 endif()
-target_include_directories(usb_camera_driver PUBLIC
+target_include_directories(v4l2_camera_driver PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(usb_camera_driver PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-target_link_libraries(usb_camera_driver
+target_compile_features(v4l2_camera_driver PUBLIC c_std_99 cxx_std_17) # Require C99 and C++17
+target_link_libraries(v4l2_camera_driver
   Threads::Threads)
-ament_target_dependencies(usb_camera_driver
+ament_target_dependencies(v4l2_camera_driver
   camera_calibration_parsers
   camera_info_manager
   dua_node
-  dua_qos
+  dua_qos_cpp
   image_transport
   OpenCV
   params_manager
@@ -104,28 +104,28 @@ ament_target_dependencies(usb_camera_driver
   std_msgs
   std_srvs
   theora_wrappers)
-rclcpp_components_register_nodes(usb_camera_driver "USBCameraDriver::CameraDriverNode")
+rclcpp_components_register_nodes(v4l2_camera_driver "v4l2_camera_driver::V4L2CameraDriver")
 
-# USB Camera Driver standalone application
-add_executable(usb_camera_app
-  src/ucd_app.cpp)
-target_include_directories(usb_camera_app PUBLIC
+# V4L2 Camera Driver standalone application
+add_executable(v4l2_camera_driver_app
+  src/v4l2_camera_driver_app.cpp)
+target_include_directories(v4l2_camera_driver_app PUBLIC
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
   $<INSTALL_INTERFACE:include>)
-target_compile_features(usb_camera_app PUBLIC c_std_99 cxx_std_17)  # Require C99 and C++17
-target_link_libraries(usb_camera_app usb_camera_driver)
-ament_target_dependencies(usb_camera_app
+target_compile_features(v4l2_camera_driver_app PUBLIC c_std_99 cxx_std_17) # Require C99 and C++17
+target_link_libraries(v4l2_camera_driver_app v4l2_camera_driver)
+ament_target_dependencies(v4l2_camera_driver_app
   dua_app_management
   rclcpp)
 
-# Install USB Camera Driver component
-install(TARGETS usb_camera_driver
+# Install V4L2 Camera Driver component
+install(TARGETS v4l2_camera_driver
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
-# Install USB Camera Driver app
-install(TARGETS usb_camera_app
+# Install V4L2 Camera Driver app
+install(TARGETS v4l2_camera_driver_app
   DESTINATION lib/${PROJECT_NAME})
 
 # Install Launch files
@@ -146,8 +146,5 @@ if(BUILD_TESTING)
   #set(ament_cmake_cpplint_FOUND TRUE)
   ament_lint_auto_find_test_dependencies()
 endif()
-
-# Make sure that the library path is exported even if the library itself is not
-ament_environment_hooks("${ament_cmake_package_templates_ENVIRONMENT_HOOK_LIBRARY_PATH}")
 
 ament_package()

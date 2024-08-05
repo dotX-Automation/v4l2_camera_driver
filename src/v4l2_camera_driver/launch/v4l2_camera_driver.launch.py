@@ -1,9 +1,5 @@
 """
-ROS 2 USB Camera Driver app launch file.
-
-Roberto Masocco <robmasocco@gmail.com>
-Lorenzo Bianchi <lnz.bnc@gmail.com>
-Intelligent Systems Lab <isl.torvergata@gmail.com>
+ROS 2 V4L2 Camera Driver app launch file.
 
 August 7, 2023
 """
@@ -18,12 +14,12 @@ from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
-    """Builds a LaunchDescription for the ROS 2 USB Camera Driver app"""
+    """Builds a LaunchDescription for the V4L2 Camera Driver app"""
     ld = LaunchDescription()
 
     # Build config file path
     config = os.path.join(
-        get_package_share_directory('usb_camera_driver'),
+        get_package_share_directory('v4l2_camera_driver'),
         'config',
         'config.yaml'
     )
@@ -34,11 +30,11 @@ def generate_launch_description():
     cf = LaunchConfiguration('cf')
     nm_launch_arg = DeclareLaunchArgument(
         'name',
-        default_value='usb_camera_driver'
+        default_value='v4l2_camera_driver'
     )
     ns_launch_arg = DeclareLaunchArgument(
         'namespace',
-        default_value='usb_camera'
+        default_value='v4l2_camera'
     )
     cf_launch_arg = DeclareLaunchArgument(
         'cf',
@@ -50,11 +46,11 @@ def generate_launch_description():
 
     # Create node launch description
     node = Node(
-        package='usb_camera_driver',
-        executable='usb_camera_app',
+        package='v4l2_camera_driver',
+        executable='v4l2_camera_driver_app',
         name=nm,
         namespace=ns,
-        exec_name='usb_camera_app',
+        exec_name='v4l2_camera_driver_app',
         emulate_tty=True,
         output='both',
         log_cmd=True,

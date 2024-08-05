@@ -1,50 +1,43 @@
 /**
- * ROS 2 USB Camera Driver node implementation.
- *
- * Roberto Masocco <robmasocco@gmail.com>
- * Lorenzo Bianchi <lnz.bnc@gmail.com>
- * Intelligent Systems Lab <isl.torvergata@gmail.com>
+ * ROS 2 V4L2 Camera Driver node implementation.
  *
  * August 7, 2023
  */
 
 /**
- * Copyright © 2023 Intelligent Systems Lab
- */
-
-/**
- * This is free software.
- * You can redistribute it and/or modify this file under the
- * terms of the GNU General Public License as published by the Free Software
- * Foundation; either version 3 of the License, or (at your option) any later
- * version.
+ * Copyright 2024 dotX Automation s.r.l.
  *
- * This file is distributed in the hope that it will be useful, but WITHOUT ANY
- * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
- * A PARTICULAR PURPOSE. See the GNU General Public License for more details.
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * You should have received a copy of the GNU General Public License along with
- * this file; if not, write to the Free Software Foundation, Inc.,
- * 51 Franklin St, Fifth Floor, Boston, MA 02110-1301 USA.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <stdexcept>
 
-#include <usb_camera_driver/usb_camera_driver.hpp>
+#include <v4l2_camera_driver/v4l2_camera_driver.hpp>
 
 using namespace std::chrono_literals;
-namespace USBCameraDriver
+
+namespace v4l2_camera_driver
 {
 
 /**
- * @brief Builds a new CameraDriverNode.
+ * @brief Constructor.
  *
  * @param opts ROS 2 node options.
  *
  * @throws RuntimeError
  */
-CameraDriverNode::CameraDriverNode(const rclcpp::NodeOptions & opts)
-: NodeBase("usb_camera_driver", opts, true)
+V4L2CameraDriver::V4L2CameraDriver(const rclcpp::NodeOptions & opts)
+: NodeBase("v4l2_camera_driver", opts, true)
 {
   // Initialize node parameters
   init_parameters();
@@ -92,27 +85,27 @@ CameraDriverNode::CameraDriverNode(const rclcpp::NodeOptions & opts)
   camera_pub_ = std::make_shared<image_transport::CameraPublisher>(
     image_transport::create_camera_publisher(
       this,
-      "~/" + this->get_parameter("base_topic_name").as_string() + "/image_color",
-      this->get_parameter("best_effort_qos").as_bool() ?
-      DUAQoS::Visualization::get_image_qos(depth).get_rmw_qos_profile() :
-      DUAQoS::get_image_qos(depth).get_rmw_qos_profile()));
+      "~/" + this->get_parameter("publisher_base_topic_name").as_string() + "/image_color",
+      this->get_parameter("publisher_best_effort_qos").as_bool() ?
+      dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+      dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile()));
   rect_pub_ = std::make_shared<image_transport::Publisher>(
     image_transport::create_publisher(
       this,
-      "~/" + this->get_parameter("base_topic_name").as_string() + "/image_rect_color",
-      this->get_parameter("best_effort_qos").as_bool() ?
-      DUAQoS::Visualization::get_image_qos(depth).get_rmw_qos_profile() :
-      DUAQoS::get_image_qos(depth).get_rmw_qos_profile()));
+      "~/" + this->get_parameter("publisher_base_topic_name").as_string() + "/image_rect_color",
+      this->get_parameter("publisher_best_effort_qos").as_bool() ?
+      dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile() :
+      dua_qos::Reliable::get_image_qos(depth).get_rmw_qos_profile()));
 
   // Create Theora stream publishers
   stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
-    "~/" + this->get_parameter("base_topic_name").as_string() + "/image_color",
-    DUAQoS::Visualization::get_image_qos(depth).get_rmw_qos_profile());
+    "~/" + this->get_parameter("publisher_base_topic_name").as_string() + "/image_color",
+    dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile());
   rect_stream_pub_ = std::make_shared<TheoraWrappers::Publisher>(
     this,
-    "~/" + this->get_parameter("base_topic_name").as_string() + "/image_rect_color",
-    DUAQoS::Visualization::get_image_qos(depth).get_rmw_qos_profile());
+    "~/" + this->get_parameter("publisher_base_topic_name").as_string() + "/image_rect_color",
+    dua_qos::BestEffort::get_image_qos(depth).get_rmw_qos_profile());
 
   // Get and store current camera info and compute undistorsion and rectification maps
   if (cinfo_manager_->isCalibrated()) {
@@ -147,7 +140,7 @@ CameraDriverNode::CameraDriverNode(const rclcpp::NodeOptions & opts)
 #endif
 #endif
   }
-  if (rotation_ == 90 || rotation_ == -90) {
+  if (image_rotation_ == 90 || image_rotation_ == -90) {
     camera_info_.width = image_height_;
     camera_info_.height = image_width_;
   } else {
@@ -164,7 +157,7 @@ CameraDriverNode::CameraDriverNode(const rclcpp::NodeOptions & opts)
   hw_enable_server_ = this->create_service<SetBool>(
     "~/enable_camera",
     std::bind(
-      &CameraDriverNode::hw_enable_callback,
+      &V4L2CameraDriver::hw_enable_callback,
       this,
       std::placeholders::_1,
       std::placeholders::_2));
@@ -179,15 +172,15 @@ CameraDriverNode::CameraDriverNode(const rclcpp::NodeOptions & opts)
     }
     stopped_.store(false, std::memory_order_release);
     camera_sampling_thread_ = std::thread(
-      &CameraDriverNode::camera_sampling_routine,
+      &V4L2CameraDriver::camera_sampling_routine,
       this);
   }
 }
 
 /**
- * @brief Cleans up stuff upon node termination.
+ * @brief Destructor, cleans up stuff upon node termination.
  */
-CameraDriverNode::~CameraDriverNode()
+V4L2CameraDriver::~V4L2CameraDriver()
 {
   // Stop camera sampling thread
   bool expected = false;
@@ -229,10 +222,10 @@ CameraDriverNode::~CameraDriverNode()
 /**
  * @brief Gets new frames from the camera and publishes them.
  */
-void CameraDriverNode::camera_sampling_routine()
+void V4L2CameraDriver::camera_sampling_routine()
 {
   // High-resolution sleep timer, in nanoseconds
-  rclcpp::WallRate sampling_timer(std::chrono::nanoseconds(int(1.0 / double(fps_) * 1000000000.0)));
+  rclcpp::WallRate sampling_timer(std::chrono::nanoseconds(int(1.0 / double(camera_fps_) * 1000000000.0)));
 
   RCLCPP_WARN(this->get_logger(), "Camera sampling thread started");
 
@@ -253,7 +246,7 @@ void CameraDriverNode::camera_sampling_routine()
         goto sleep;
       }
       cv::Mat final_frame, final_rect_frame;
-      if (rotation_ != 0) {
+      if (image_rotation_ != 0) {
         final_frame = frame_rot_;
         if (cinfo_manager_->isCalibrated()) {
           final_rect_frame = frame_rect_rot_;
@@ -270,16 +263,16 @@ void CameraDriverNode::camera_sampling_routine()
       if (cinfo_manager_->isCalibrated()) {
         rect_image_msg = frame_to_msg(final_rect_frame);
         rect_image_msg->header.set__stamp(timestamp);
-        rect_image_msg->header.set__frame_id(frame_id_);
+        rect_image_msg->header.set__frame_id(camera_frame_id_);
       }
       image_msg = frame_to_msg(final_frame);
       image_msg->header.set__stamp(timestamp);
-      image_msg->header.set__frame_id(frame_id_);
+      image_msg->header.set__frame_id(camera_frame_id_);
 
       // Generate CameraInfo message
       CameraInfo::SharedPtr camera_info_msg = std::make_shared<CameraInfo>(camera_info_);
       camera_info_msg->header.set__stamp(timestamp);
-      camera_info_msg->header.set__frame_id(frame_id_);
+      camera_info_msg->header.set__frame_id(camera_frame_id_);
 
       // Publish new frame together with its CameraInfo on all available transports
       camera_pub_->publish(image_msg, camera_info_msg);
@@ -305,7 +298,7 @@ sleep:
  * @param req Service request to parse.
  * @param resp Service response to populate.
  */
-void CameraDriverNode::hw_enable_callback(
+void V4L2CameraDriver::hw_enable_callback(
   SetBool::Request::SharedPtr req,
   SetBool::Response::SharedPtr resp)
 {
@@ -327,7 +320,7 @@ void CameraDriverNode::hw_enable_callback(
 
       // Start camera sampling thread
       camera_sampling_thread_ = std::thread(
-        &CameraDriverNode::camera_sampling_routine,
+        &V4L2CameraDriver::camera_sampling_routine,
         this);
     }
     resp->set__success(true);
@@ -348,7 +341,7 @@ void CameraDriverNode::hw_enable_callback(
   }
 }
 
-} // namespace USBCameraDriver
+} // namespace v4l2_camera_driver
 
 #include <rclcpp_components/register_node_macro.hpp>
-RCLCPP_COMPONENTS_REGISTER_NODE(USBCameraDriver::CameraDriverNode)
+RCLCPP_COMPONENTS_REGISTER_NODE(v4l2_camera_driver::V4L2CameraDriver)
