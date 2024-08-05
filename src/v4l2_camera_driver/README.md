@@ -1,4 +1,4 @@
-# usb_camera_driver
+# v4l2_camera_driver
 
 Simple ROS 2 driver node for USB monocular cameras compatible with the `Video4Linux` APIs. Based on `image_transport`, `camera_calibration` and `OpenCV`.
 
@@ -33,7 +33,7 @@ You can use `RViz` to display the frames being streamed:
 The build process is mostly automatic, and CMake should detect the best configuration for the machine it is running on, including containerized environments. However, some options can be specified manually:
 
 - `NO_CUDA`: disables CUDA code paths, even if a compatible installation is available (default: `OFF`).
-- `VPI`: enables Nvidia VPI code paths **(default: `OFF`)**.
+- `VPI`: enables Nvidia VPI code paths (default: `OFF`).
 
 Build options can be passed to CMake via `colcon`:
 
@@ -41,22 +41,7 @@ Build options can be passed to CMake via `colcon`:
 colcon build --ament-cmake-args "-DNO_CUDA=ON" ...
 ```
 
-The choice to leave VPI code paths off by default is due to the fact that, upon testing, the library has not been found to be stable enough. It is still possible to enable it manually, but keep in mind that it might not work.
-
-The platforms on which the VPI code was tested were (referring to [`dua-foundation`](https://github.com/IntelligentSystemsLabUTV/dua-foundation) targets):
-
-- `x86-cudev`
-- `jetson5c7`
-
-so an x86-64, Ubuntu 22.04 environment with CUDA 11.7, and a Jetpack 5.0.2, L4T 35.1 one.
-
-The pipeline goes from image acquisition to resize, rectification, rotation, and encoding back in host memory. There is a single stream that attempts to run frame preparation in the CUDA backend, and remappings (rectification, rotation) on the VIC if available (*e.g.* on Jetson devices). The stream is synchronized before encoding and publishing.
-
-In both cases, `libnvvpi2` version was `2.1.6`.
-
-In the `x86-cudev` case, the VPI code worked flawlessly on the CUDA backend. On the `jetson5c7` target, however, the VPI code stopped working after a few frames, apparently due to a memory leak in the VPI library for Jetson devices: `vpiStreamSync` returns an undocumented `OUT_OF_MEMORY` error code, and the stream is no longer usable.
-
-**For this reason, until a software update solves the issue, the VPI code is disabled by default.**
+The VPI pipeline goes from image acquisition to resize, rectification, rotation, and encoding back in host memory. There is a single stream that attempts to run frame preparation in the CUDA backend, and remappings (rectification, rotation) on the VIC if available (*e.g.*, on Jetson devices). The stream is synchronized before encoding and publishing.
 
 ### Node parameters
 
@@ -84,7 +69,7 @@ Keep in mind that:
 - Hardware-dependent parameters are particularly tricky: they might not be supported, have unusual or even completely different ranges, and require some black magic to be correctly set up. What you see in this code was done to work with some cameras we had at the time, so be prepared to change many things if you want to act on camera hardware settings.
 - Image rotation is intended as the last stage in the post-processing pipeline applied by this node, so camera parameters and image resolution (width, height) must be provided for the camera in its default orientation.
 
-See the [`params.yaml`](src/usb_camera_driver/src/usb_camera_driver/params.yaml) file for more information.
+See the [`params.yaml`](src/v4l2_camera_driver/src/v4l2_camera_driver/params.yaml) file for more information.
 
 ### Camera calibration
 
@@ -92,10 +77,14 @@ The necessary parameters and camera intrinsics can be acquired from a standard c
 
 ---
 
-## License
+## Copyright and License
 
-This work is licensed under the GNU General Public License v3.0. See the [`LICENSE`](LICENSE) file for details.
+Copyright 2024 dotX Automation s.r.l.
 
-## Copyright
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
 
-Copyright (c) 2023, Intelligent Systems Lab, University of Rome Tor Vergata
+You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.

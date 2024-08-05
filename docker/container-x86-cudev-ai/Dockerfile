@@ -18,7 +18,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-FROM dotxautomation/dua-foundation:TARGET
+FROM dotxautomation/dua-foundation:x86-cudev-ai
 
 # Change this if you encounter problems with the default user
 ARG USER_UID=1000
@@ -31,7 +31,7 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Create a user with Zsh as shell, hashed password, and add it to the sudoers
 # To generate the hashed password, run:
 #   mkpasswd -m sha-512 PASSWORD duatemplate
-RUN useradd -r -m -s /usr/bin/zsh -u ${USER_UID} -G adm,dialout,internal,plugdev,sudo,tty,video -p 'HPSW' neo
+RUN useradd -r -m -s /usr/bin/zsh -u ${USER_UID} -G adm,dialout,internal,plugdev,sudo,tty,video -p '$6$duatemplate$NfMPW/F3VFvuUhFabyiZ6Gs6bwxekwhK/0HS5Behl0nXUGR4B.WiBmKmED2FsbBa0NsqN7ui3pEeS7YWNnCAx/' neo
 ENV HOME=/home/neo
 
 # Create workspace directory: host workspaces will be mounted here
