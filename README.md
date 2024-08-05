@@ -4,7 +4,7 @@ ROS 2 driver nodes and other utilities for cameras compatible with the `Video4Li
 
 ## Contents
 
-- [x] [`usb_camera_driver`](src/usb_camera_driver/README.md): ROS 2 driver node for V4L2 cameras.
+- [x] [`v4l2_camera_driver`](src/v4l2_camera_driver/README.md): ROS 2 driver node for V4L2 cameras.
 
 ## Usage
 
@@ -18,10 +18,14 @@ It is an independent unit that can also be used as a module in a larger project.
 
 ---
 
-## License
+## Copyright and License
 
-TODO
+Copyright 2024 dotX Automation s.r.l.
 
-## Copyright
+Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with the License.
 
-Copyright (c) 2023, dotX Automation s.r.l.
+You may obtain a copy of the License at <http://www.apache.org/licenses/LICENSE-2.0>.
+
+Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+
+See the License for the specific language governing permissions and limitations under the License.

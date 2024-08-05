@@ -1,12 +1,12 @@
 {
-  "name": "v4l2_camera_driver-x86-cudev",
+  "name": "v4l2_camera_driver-x86-cudev-ai",
   "dockerComposeFile": [
     "docker-compose.yaml"
   ],
   // Only start this service
-  "service": "v4l2_camera_driver-x86-cudev",
+  "service": "v4l2_camera_driver-x86-cudev-ai",
   "runServices": [
-    "v4l2_camera_driver-x86-cudev"
+    "v4l2_camera_driver-x86-cudev-ai"
   ],
   // Stop container if VS Code is shut down
   "shutdownAction": "stopCompose",

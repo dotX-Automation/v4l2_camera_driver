@@ -19,14 +19,14 @@
 # limitations under the License.
 
 services:
-  v4l2_camera_driver-x86-cudev:
+  v4l2_camera_driver-x86-cudev-ai:
     build:
       context: ../
       network: host
       dockerfile: Dockerfile
       args:
         - USER_UID=1000
-    image: v4l2_camera_driver:x86-cudev
+    image: v4l2_camera_driver:x86-cudev-ai
     environment:
       TERM: xterm-256color
       DISPLAY:
