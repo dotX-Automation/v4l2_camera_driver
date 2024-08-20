@@ -149,3 +149,11 @@ params:
     description: "Depth of the image publisher queue."
     constraints: ""
     read_only: true
+
+  recording_path:
+    type: string
+    default_value: ""
+    description: "Path to directory in which all frames will be saved."
+    constraints: "Cannot be changed, must be a valid directory path, leave empty to not record frames."
+    read_only: true
+    var_name: recording_path_

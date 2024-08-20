@@ -31,6 +31,7 @@
 
 #include <opencv2/calib3d.hpp>
 #include <opencv2/core.hpp>
+#include <opencv2/imgcodecs.hpp>
 #include <opencv2/imgproc.hpp>
 #include <opencv2/videoio.hpp>
 
@@ -127,6 +128,7 @@ private:
   int64_t image_height_ = 0;
   int64_t image_rotation_ = 0;
   int64_t image_width_ = 0;
+  std::string recording_path_ = "";
 
   /* Node parameters validation routines. */
   bool validate_camera_brightness(const rclcpp::Parameter & p);

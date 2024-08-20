@@ -225,7 +225,9 @@ V4L2CameraDriver::~V4L2CameraDriver()
 void V4L2CameraDriver::camera_sampling_routine()
 {
   // High-resolution sleep timer, in nanoseconds
-  rclcpp::WallRate sampling_timer(std::chrono::nanoseconds(int(1.0 / double(camera_fps_) * 1000000000.0)));
+  rclcpp::WallRate sampling_timer(
+    std::chrono::nanoseconds(
+      int(1.0 / double(camera_fps_) * 1000000000.0)));
 
   RCLCPP_WARN(this->get_logger(), "Camera sampling thread started");
 
@@ -281,8 +283,17 @@ void V4L2CameraDriver::camera_sampling_routine()
         rect_pub_->publish(rect_image_msg);
         rect_stream_pub_->publish(rect_image_msg);
       }
+
+      // Save frame if requested
+      if (!recording_path_.empty()) {
+        std::string frame_name = std::to_string(uint64_t(timestamp.nanoseconds())) + ".jpg";
+        cv::imwrite(recording_path_ + "/" + frame_name, final_frame);
+        if (cinfo_manager_->isCalibrated()) {
+          cv::imwrite(recording_path_ + "/rect_" + frame_name, final_rect_frame);
+        }
+      }
     } else {
-      RCLCPP_INFO(this->get_logger(), "Empty frame");
+      RCLCPP_ERROR(this->get_logger(), "Empty frame");
     }
 
 sleep:

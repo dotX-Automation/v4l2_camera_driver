@@ -16,3 +16,4 @@
     publisher_base_topic_name: camera
     publisher_best_effort_qos: true
     publisher_depth: 5
+    recording_path: ''
